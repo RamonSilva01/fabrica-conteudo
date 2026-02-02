@@ -1,6 +1,6 @@
 """
-Módulo de Processamento - Versão 13.0 (Anti-Preguiça / Few-Shot Prompting)
-Foco: Forçar textos longos e densos no LinkedIn usando Exemplos Reais.
+Módulo de Processamento - Versão 15.0 (Universal Auto-Detect)
+Foco: Identificação automática de QUALQUER produto para gerar conteúdo B2B/B2C de alta qualidade.
 """
 
 import os
@@ -28,110 +28,132 @@ def clean_json_response(content):
     if match: return match.group(1)
     return content.strip().replace("```json", "").replace("```", "")
 
-# --- O EXEMPLO DE OURO (A REFERÊNCIA) ---
+# --- AGENTE 1: O DETETIVE (IDENTIFICA O PRODUTO) ---
 
-LINKEDIN_GOLDEN_EXAMPLE = """
-exemplo_post_linkedin: "
-**Título: Por que academias 'Low Cost' estão perdendo alunos para estúdios de experiência?**
+def detect_product_info(context_data, context_type):
+    """
+    Analisa a imagem ou texto para identificar O QUE está sendo vendido.
+    Retorna um dicionário com Nome, Categoria e Público-Alvo.
+    """
+    client = get_client()
+    
+    prompt_detect = """
+    ANALISE ESTE INPUT COM PRECISÃO.
+    Identifique:
+    1. Nome do Produto (Modelo específico se visível).
+    2. Marca (Se visível).
+    3. Categoria (Ex: Esteira, Scanner, Software, Café, Carro).
+    4. Principal Diferencial Técnico visível.
+    
+    Responda APENAS JSON:
+    {
+        "nome": "...",
+        "marca": "...",
+        "categoria": "...",
+        "diferencial": "..."
+    }
+    """
+    
+    try:
+        messages = [{"role": "system", "content": "Você é um especialista em reconhecimento de produtos industriais e comerciais."}]
+        
+        content_payload = f"Texto:\n---\n{context_data[:10000]}\n---\n{prompt_detect}" if context_type == "text" else [
+            {"type": "text", "text": prompt_detect},
+            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{context_data}", "detail": "low"}} # Low detail é mais barato e rápido para detecção
+        ]
+        
+        messages.append({"role": "user", "content": content_payload})
+        
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            response_format={"type": "json_object"},
+            max_tokens=300
+        )
+        return json.loads(clean_json_response(response.choices[0].message.content))
+    except:
+        # Fallback se falhar
+        return {"nome": "Equipamento Premium", "marca": "Sua Marca", "categoria": "Tecnologia", "diferencial": "Alta Performance"}
 
-A era da 'esteira alugada' acabou. Dados recentes mostram que a taxa de cancelamento (Churn) é 40% menor em academias que oferecem gamificação e experiências imersivas. O aluno moderno não paga para correr; ele paga para *sentir*.
+# --- AGENTE 2: O COPYWRITER (DYNAMIC SYSTEM PROMPT) ---
 
-**O Problema da Monotonia**
-O maior inimigo da retenção não é o preço, é o tédio. Uma esteira padrão, onde o aluno encara uma parede por 30 minutos, cria uma percepção de esforço negativo. O resultado? Ele falta, desanima e cancela.
-
-**A Virada Tecnológica: Creator 600**
-É aqui que entra a biomecânica aliada à imersão. A Creator 600 não é apenas hardware; é um ecossistema. Com simulação de cenários reais (Real-world Scene) em 4K, ela dissocia a dor do esforço. O aluno corre nos Alpes Suíços enquanto sua frequência cardíaca é monitorada por sensores de precisão clínica.
-
-**Impacto no ROI**
-Para o gestor, a conta é simples: Equipamentos de alta experiência permitem cobrar um ticket médio 20% superior e aumentam a vida útil do cliente (LTV). Não é um gasto em equipamento, é um investimento em blindagem de base de clientes.
-
-Você está vendendo treino ou experiência? 🚀
-"
-"""
-
-# --- O CÉREBRO DA OPERAÇÃO ---
-
-def get_system_prompt_by_mode(mode):
-    product_context = ""
-    if mode == "esteira":
-        product_context = "PRODUTO: Esteira Profissional (Creator 600). Ignore scanners."
-    elif mode == "scanner":
-        product_context = "PRODUTO: Body Scanner 3D (Visbody). Ignore esteiras."
-    else:
-        product_context = "PRODUTO: Equipamento de Alta Tecnologia Visbody."
-
+def get_dynamic_system_prompt(info):
+    """
+    Cria uma persona customizada baseada no produto detectado.
+    """
+    nome = info.get('nome', 'Produto')
+    categoria = info.get('categoria', 'Equipamento')
+    diferencial = info.get('diferencial', 'Tecnologia')
+    
     return f"""
-    ATUE COMO: Consultor Sênior de Negócios Fitness (B2B).
-    {product_context}
+    ATUE COMO: Diretor de Marketing Especialista em {categoria}.
+    PRODUTO EM FOCO: {nome} ({categoria}).
+    DIFERENCIAL CHAVE: {diferencial}.
     
-    === REGRAS DE CANAL (INEGOCIÁVEIS) ===
-
-    🔴 INSTAGRAM (B2C - Visual):
-       - Curto, impactante, visual.
-       - Use AIDA (Atenção, Interesse, Desejo, Ação).
-       - Hashtags: #Visbody + Produto.
+    === ESTRATÉGIA DE CANAL ===
     
-    🔵 LINKEDIN (B2B - Profundo):
-       - PROIBIDO ESCREVER MENOS DE 150 PALAVRAS.
-       - PROIBIDO TEXTO DE "VENDEDOR".
-       - O texto DEVE seguir a estrutura do EXEMPLO ABAIXO.
-       - Use Títulos em Negrito. Separe por parágrafos.
-       - Fale de ROI (Retorno sobre Investimento), Retenção e Tecnologia.
+    🔴 INSTAGRAM (B2C/Visual):
+       - Foco: Desejo, Status e "Efeito Uau".
+       - Use hashtags específicas do nicho de {categoria}.
+       - Método AIDA (Atenção, Interesse, Desejo, Ação).
+    
+    🔵 LINKEDIN (B2B/Negócios):
+       - OBRIGATÓRIO: Escreva um ARTIGO DE ANÁLISE TÉCNICA/COMERCIAL.
+       - Estrutura Rígida: 
+         1. Título (Impacto no Negócio)
+         2. O Problema do Mercado (Sem esse produto)
+         3. A Solução {nome} (Hardware/Tecnologia)
+         4. O ROI (Lucro/Economia/Eficiência)
+       - MÍNIMO 150 PALAVRAS.
+       - Tom: Consultivo, sério, focado em dinheiro e eficiência.
        
-    === EXEMPLO DE POST PERFEITO NO LINKEDIN (COPIE ESTA ESTRUTURA) ===
-    {LINKEDIN_GOLDEN_EXAMPLE}
-    ===================================================================
+    === EXEMPLO DE TOM (LINKEDIN) ===
+    "Não invista em equipamentos, invista em ativos que geram retorno. A tecnologia X reduz o custo operacional em 20% e aumenta a retenção do cliente..."
     """
 
 def get_json_structure_instruction(qtd_str):
     return f"""
-    Responda ESTRITAMENTE com este JSON:
+    Responda JSON:
     {{
         "contents": [
             {{
                 "angulo": "Nome do Ângulo",
-                "instagram": "Legenda Insta...",
-                "linkedin": "Artigo ROBUSTO para LinkedIn (Mínimo 3 parágrafos)..."
+                "instagram": "Legenda...",
+                "linkedin": "Artigo B2B Robusto..."
             }}
             ... (x{qtd_str})
         ]
     }}
     """
 
-# --- REGENERAÇÃO FORÇADA ---
+# --- REGENERAÇÃO ---
 
-def regenerate_single_platform(context_data, context_type, angle_name, target_platform, product_mode="auto"):
+def regenerate_single_platform(context_data, context_type, angle_name, target_platform, product_info):
     client = get_client()
-    if not client: return {"error": "Sem API Key"}
-
+    
+    nome_produto = product_info.get('nome', 'O Produto')
+    
     instruction = ""
     if target_platform == "instagram":
-        instruction = "CORREÇÃO INSTAGRAM: Seja mais polêmico e visual. Use emojis."
+        instruction = f"CORREÇÃO INSTAGRAM: Quero algo mais VIBRANTE sobre {nome_produto}. Use gatilhos de exclusividade."
     else:
-        instruction = f"""
-        CORREÇÃO LINKEDIN (IMPORTANTE):
-        - O texto anterior estava MUITO CURTO.
-        - Quero um ARTIGO DE OPINIÃO, não uma legenda.
-        - Escreva no MÍNIMO 150 palavras.
-        - Estruture em: Título -> Contexto de Mercado -> Solução Visbody -> Conclusão Financeira.
-        - Use o tom de um Consultor de Negócios experiente.
-        """
+        instruction = f"CORREÇÃO LINKEDIN: Aprofunde na parte de NEGÓCIOS de {nome_produto}. Fale de ROI e Vantagem Competitiva. Texto longo."
 
     prompt_full = f"""
     REESCREVER: {target_platform.upper()}
-    Contexto do Ângulo: "{angle_name}"
+    Contexto: "{angle_name}"
     {instruction}
-    Retorne APENAS JSON: {{ "new_text": "..." }}
+    Retorne JSON: {{ "new_text": "..." }}
     """
 
     try:
-        messages = [{"role": "system", "content": get_system_prompt_by_mode(product_mode)}]
+        # Prompt dinâmico aqui também
+        messages = [{"role": "system", "content": get_dynamic_system_prompt(product_info)}]
         
-        content_payload = f"Contexto:\n---\n{context_data[:35000]}\n---\n{prompt_full}" if context_type == "text" else [
+        content_payload = f"Contexto:\n---\n{context_data[:30000]}\n---\n{prompt_full}" if context_type == "text" else [
             {"type": "text", "text": prompt_full},
             {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{context_data}", "detail": "high"}}
         ]
-        
         messages.append({"role": "user", "content": content_payload})
 
         response = client.chat.completions.create(
@@ -145,21 +167,22 @@ def regenerate_single_platform(context_data, context_type, angle_name, target_pl
 
 # --- PROCESSAMENTO PRINCIPAL ---
 
-def process_image_direct(image_bytes, product_mode="auto"):
+def process_image_direct(image_bytes):
     client = get_client()
-    if not client: return {"error": "API Key não configurada"}
+    if not client: return {"error": "Sem API Key"}
 
     try:
         base64_image = encode_image_from_bytes(image_bytes)
         
+        # 1. DETECÇÃO AUTOMÁTICA
+        detected_info = detect_product_info(base64_image, "image")
+        print(f"🕵️ Produto Detectado: {detected_info}")
+
+        # 2. GERAÇÃO DE CONTEÚDO
         prompt_text = f"""
-        Analise esta imagem.
-        Crie 3 estratégias de conteúdo.
-        
-        PARA O LINKEDIN:
-        Quero 3 MINI-ARTIGOS (não posts curtos).
-        Cada um deve ter Título, Problema, Solução Técnica e ROI.
-        Use o EXEMPLO fornecido no prompt do sistema como base de qualidade.
+        Analise a imagem de {detected_info['nome']}.
+        Crie 3 estratégias de conteúdo para vender este {detected_info['categoria']}.
+        Para o LinkedIn, foque em como isso gera lucro para o comprador.
         """ + get_json_structure_instruction("3")
         
         user_message = [
@@ -169,7 +192,10 @@ def process_image_direct(image_bytes, product_mode="auto"):
 
         response = client.chat.completions.create(
             model="gpt-4o",
-            messages=[{"role": "system", "content": get_system_prompt_by_mode(product_mode)}, {"role": "user", "content": user_message}],
+            messages=[
+                {"role": "system", "content": get_dynamic_system_prompt(detected_info)}, 
+                {"role": "user", "content": user_message}
+            ],
             response_format={"type": "json_object"},
             max_tokens=4000
         )
@@ -177,15 +203,15 @@ def process_image_direct(image_bytes, product_mode="auto"):
         result = json.loads(clean_json_response(response.choices[0].message.content))
         result["raw_context"] = base64_image
         result["context_type"] = "image"
-        result["product_mode"] = product_mode
+        result["detected_info"] = detected_info # Salva o que ele detectou para usar depois
         return result
         
     except Exception as e:
-        return {"error": f"Erro imagem: {str(e)}"}
+        return {"error": f"Erro: {str(e)}"}
 
-def process_pdf_to_content(pdf_path, product_mode="auto"):
+def process_pdf_to_content(pdf_path):
     client = get_client()
-    if not client: return {"error": "API Key não configurada"}
+    if not client: return {"error": "Sem API Key"}
 
     try:
         doc = fitz.open(pdf_path)
@@ -207,23 +233,40 @@ def process_pdf_to_content(pdf_path, product_mode="auto"):
                     "image_url": {"url": f"data:image/png;base64,{encode_pixmap(pix)}", "detail": "high"}
                 })
         doc.close()
-
-        prompt_instruction = f"""
-        Analise este material.
-        Extraia 5 Pontos de Ouro.
         
-        PARA O LINKEDIN: Transforme cada ponto em um ARTIGO DE LIDERANÇA DE PENSAMENTO.
-        Siga a estrutura: Título -> Contexto -> Solução Técnica -> ROI.
-        Mínimo de 150 palavras por post.
+        # Prepara contexto para detecção
+        context_for_detection = ""
+        context_type = "text"
+        detection_payload = ""
+
+        if not is_scanned:
+            full_text = "\n".join(text_content)
+            context_for_detection = full_text[:5000] # Primeiros 5k caracteres para detectar
+            detection_payload = full_text
+            context_type = "text"
+        else:
+            if not image_content: return {"error": "PDF vazio"}
+            # Pega primeira imagem para detectar
+            context_for_detection = image_content[0]['image_url']['url'].split(",")[1]
+            context_type = "image"
+
+        # 1. DETECÇÃO AUTOMÁTICA
+        detected_info = detect_product_info(context_for_detection, context_type)
+        print(f"🕵️ PDF Detectado: {detected_info}")
+
+        # 2. GERAÇÃO
+        prompt_instruction = f"""
+        Analise o material de {detected_info['nome']}.
+        Extraia 5 Pontos de Ouro.
+        LinkedIn: Artigos de Negócio sobre {detected_info['categoria']}.
         """ + get_json_structure_instruction("5")
 
         result = {}
         content_raw = ""
-        system_prompt = get_system_prompt_by_mode(product_mode)
+        system_prompt = get_dynamic_system_prompt(detected_info)
 
         if not is_scanned:
-            full_text = "\n".join(text_content)
-            prompt = f"Material Técnico:\n---\n{full_text[:50000]}\n---\n{prompt_instruction}"
+            prompt = f"Material:\n---\n{full_text[:50000]}\n---\n{prompt_instruction}"
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}],
@@ -234,7 +277,6 @@ def process_pdf_to_content(pdf_path, product_mode="auto"):
             result["raw_context"] = full_text
             result["context_type"] = "text"
         else:
-            if not image_content: return {"error": "PDF vazio"}
             user_message = [{"type": "text", "text": prompt_instruction}]
             user_message.extend(image_content)
             response = client.chat.completions.create(
@@ -248,7 +290,7 @@ def process_pdf_to_content(pdf_path, product_mode="auto"):
             result["raw_context"] = None
             result["context_type"] = "scanned_pdf"
             
-        result["product_mode"] = product_mode
+        result["detected_info"] = detected_info
         return result
 
     except Exception as e:
