@@ -1,5 +1,5 @@
 """
-Aplicação Streamlit: Fábrica de IA - v7.0 (Abas Independentes)
+Aplicação Streamlit: Fábrica de IA - v11.0 (Seletor Manual de Produto)
 """
 
 import streamlit as st
@@ -22,13 +22,7 @@ st.markdown("""
     .main { padding: 2rem; }
     .streamlit-expanderHeader { background-color: #f0f2f6 !important; color: #000 !important; font-weight: bold; }
     .stTextArea textarea { background-color: #fff !important; color: #333 !important; }
-    
-    /* Cores das Abas */
-    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-        background-color: #e1f5fe;
-        color: #0077b5;
-        font-weight: bold;
-    }
+    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] { background-color: #e1f5fe; color: #0077b5; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -40,6 +34,20 @@ with st.sidebar:
     api_key = st.text_input("API Key OpenAI", type="password", value=os.getenv("OPENAI_API_KEY", ""))
     if api_key: os.environ["OPENAI_API_KEY"] = api_key
     
+    st.divider()
+    
+    # --- NOVO: SELETOR DE PRODUTO ---
+    st.subheader("🛠️ Tipo de Produto")
+    product_mapping = {"Detectar Automático": "auto", "🏃 Esteira (Creator)": "esteira", "🧍 Scanner (Visbody)": "scanner"}
+    product_selection = st.radio(
+        "O que estamos analisando?",
+        options=list(product_mapping.keys()),
+        index=0,
+        help="Force a IA a reconhecer o produto correto se ela estiver confusa."
+    )
+    selected_mode = product_mapping[product_selection]
+    # --------------------------------
+
     st.divider()
     if "total_processed" in st.session_state:
         st.metric("Arquivos", st.session_state.total_processed)
@@ -55,7 +63,12 @@ with tab_up:
         uploaded_file = st.file_uploader("Arquivo (PDF/Img)", type=["pdf","png","jpg"], on_change=reset_session_state)
     
     with col_info:
-        st.info("Abas independentes: Agora você pode reescrever só o Insta ou só o LinkedIn!")
+        if selected_mode == "esteira":
+            st.success("✅ Modo ESTEIRA Ativado. A IA vai focar em corrida e treino.")
+        elif selected_mode == "scanner":
+            st.info("✅ Modo SCANNER Ativado. A IA vai focar em avaliação 3D.")
+        else:
+            st.warning("⚠️ Modo Automático. Se a IA errar, selecione o produto na esquerda.")
 
     if uploaded_file and st.button("🚀 Gerar Estratégia", type="primary", use_container_width=True):
         if not os.getenv("OPENAI_API_KEY"):
@@ -68,16 +81,21 @@ with tab_up:
             try:
                 content_data = None
                 if uploaded_file.type == "application/pdf":
-                    status.text("Lendo PDF...")
+                    status.text(f"Lendo PDF (Modo: {selected_mode})...")
                     prog.progress(20)
                     temp = f"temp_{datetime.now().timestamp()}.pdf"
                     with open(temp, "wb") as f: f.write(uploaded_file.getbuffer())
-                    content_data = process_pdf_to_content(temp)
+                    
+                    # Passando o modo selecionado
+                    content_data = process_pdf_to_content(temp, product_mode=selected_mode)
+                    
                     if os.path.exists(temp): os.remove(temp)
                 else:
-                    status.text("Analisando Imagem...")
+                    status.text(f"Analisando Imagem (Modo: {selected_mode})...")
                     prog.progress(40)
-                    content_data = process_image_direct(uploaded_file.getvalue())
+                    
+                    # Passando o modo selecionado
+                    content_data = process_image_direct(uploaded_file.getvalue(), product_mode=selected_mode)
 
                 if content_data and "contents" in content_data:
                     prog.progress(100)
@@ -97,39 +115,35 @@ with tab_res:
         contents = data.get("contents", [])
         raw_context = data.get("raw_context")
         context_type = data.get("context_type")
+        # Recupera o modo que foi usado na geração original
+        saved_mode = data.get("product_mode", "auto")
 
         st.subheader(f"Estratégia: {st.session_state.last_filename}")
         
-        # LOOP DE RESULTADOS (ÂNGULOS)
         for i, item in enumerate(contents):
             angulo = item.get('angulo', f'Opção {i+1}')
             
             with st.expander(f"📌 {angulo}", expanded=True):
-                
-                # AQUI ESTÁ A MÁGICA: ABAS INTERNAS
                 tab_insta, tab_linked = st.tabs(["📸 Instagram", "💼 LinkedIn"])
                 
-                # --- ABA INSTAGRAM ---
                 with tab_insta:
                     st.text_area("Legenda", item.get('instagram',''), height=300, key=f"txt_inst_{i}")
-                    
                     if raw_context:
-                        if st.button("🔄 Refazer SÓ Instagram", key=f"btn_inst_{i}"):
-                            with st.spinner("Reescrevendo Instagram..."):
-                                new_content = regenerate_single_platform(raw_context, context_type, angulo, "instagram")
+                        if st.button("🔄 Refazer Insta", key=f"btn_inst_{i}"):
+                            with st.spinner("Reescrevendo..."):
+                                # Passa o saved_mode para garantir consistência
+                                new_content = regenerate_single_platform(raw_context, context_type, angulo, "instagram", saved_mode)
                                 if "new_text" in new_content:
                                     st.session_state.last_result['contents'][i]['instagram'] = new_content['new_text']
                                     st.rerun()
                 
-                # --- ABA LINKEDIN ---
                 with tab_linked:
                     st.text_area("Post", item.get('linkedin',''), height=300, key=f"txt_link_{i}")
-                    
                     if raw_context:
-                        if st.button("🔄 Refazer SÓ LinkedIn", key=f"btn_link_{i}"):
-                            with st.spinner("Reescrevendo LinkedIn..."):
-                                
-                                new_content = regenerate_single_platform(raw_context, context_type, angulo, "linkedin")
+                        if st.button("🔄 Refazer LinkedIn", key=f"btn_link_{i}"):
+                            with st.spinner("Reescrevendo..."):
+                                # Passa o saved_mode para garantir consistência
+                                new_content = regenerate_single_platform(raw_context, context_type, angulo, "linkedin", saved_mode)
                                 if "new_text" in new_content:
                                     st.session_state.last_result['contents'][i]['linkedin'] = new_content['new_text']
                                     st.rerun()
