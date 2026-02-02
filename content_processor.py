@@ -1,5 +1,6 @@
 """
-Módulo de Processamento - Versão 9.0 (Blindada contra Erros + Prompts Premium)
+Módulo de Processamento - Versão 10.0 (Prompts Ultra-Premium B2B)
+Foco: LinkedIn de Autoridade Técnica & Instagram de Desejo Visual
 """
 
 import os
@@ -21,61 +22,56 @@ def encode_pixmap(pix):
     return base64.b64encode(pix.tobytes("png")).decode("utf-8")
 
 def clean_json_response(content):
-    """
-    Remove blocos de código Markdown (```json ... ```) se a IA incluir.
-    Garante que o json.loads funcione.
-    """
     if not content: return None
-    # Remove ```json no início e ``` no final
     pattern = r"```json\s*(.*?)\s*```"
     match = re.search(pattern, content, re.DOTALL)
-    if match:
-        return match.group(1)
-    # Tenta remover apenas ``` se o formato for diferente
+    if match: return match.group(1)
     return content.strip().replace("```json", "").replace("```", "")
 
-# --- PROMPTS DE ALTA PERFORMANCE (Mantidos) ---
+# --- O CORAÇÃO DA MUDANÇA: PROMPTS DE ELITE ---
 
 def get_common_system_prompt():
     return """
-    Você é um Estrategista de Conteúdo Sênior e Copywriter de Elite para a marca VISBODY.
-    Sua missão: Criar conteúdo que posiciona a marca como líder tecnológica no mercado fitness/médico.
+    ATUE COMO: Diretor de Marketing Global da VISBODY e Consultor de Negócios Fitness/Médico.
     
-    === SUAS REGRAS DE GÊNERO (Obrigatorio) ===
-    - SE ESTEIRA (Treadmill, Creator) -> FEMININO ("A Creator 600", "A esteira").
-    - SE SCANNER (Body Scanner, Visbody) -> MASCULINO ("O Visbody", "O scanner").
+    SUA AUDIÊNCIA B2B (LinkedIn): Donos de grandes redes de academia, fisioterapeutas de elite e médicos nutrólogos. Eles odeiam "papinho de vendedor". Eles buscam dados, tecnologia e retorno financeiro.
+    SUA AUDIÊNCIA B2C/B2B (Instagram): Personal trainers e o público final que valoriza tecnologia de ponta e estética futurista.
     
-    === PERFIL DE REDE SOCIAL (RIGOROSO) ===
+    === REGRAS DE GÊNERO (INEGOCIÁVEL) ===
+    - ESTEIRA (Treadmill, Creator) -> FEMININO ("A Creator 600", "A esteira inteligente").
+    - SCANNER (Body Scanner, Visbody R6/S30) -> MASCULINO ("O Visbody", "O scanner 3D").
     
-    1. INSTAGRAM (Ousado & Visual):
-       - O texto DEVE ser chamativo ("scroll-stopper"). Comece com uma frase de impacto.
-       - Use emojis para quebrar o texto e dar ritmo ⚡🔥🚀.
-       - HASHTAGS OBRIGATÓRIAS: Use SEMPRE #Visbody e #[NomeDoEquipamento] (Ex: #Creator600, #VisbodyR6). Adicione tags de nicho.
-       - Tom: Inspirador, enérgico, focado em lifestyle e inovação.
+    === ESTILO DE ESCRITA ===
+    
+    1. LINKEDIN (AUTORIDADE & ROI):
+       - PROIBIDO: Textos curtos, genéricos ou com "cara de anúncio".
+       - OBRIGATÓRIO: Estrutura de artigo técnico/consultivo.
+       - Use "Bullet Points" para dados técnicos.
+       - Fale de "Retenção de alunos", "Aumento de ticket médio", "Precisão clínica" e "Biomecânica".
+       - Tom: Sofisticado, Especialista, Provocativo.
        
-    2. LINKEDIN (Robusto & Autoridade):
-       - O texto DEVE ser denso e valioso. Nada de frases curtas e rasas.
-       - Estrutura: Título provocativo -> Contexto de Mercado/Dor -> Solução Técnica Profunda -> Impacto no ROI/Negócio.
-       - Foco: Tecnologia, Biomecânica, Retorno sobre Investimento, Diferencial Competitivo.
-       - Tom: Profissional, Especialista, "Thought Leader".
+    2. INSTAGRAM (DESEJO & VISUAL):
+       - OBRIGATÓRIO: Hook visual (ex: "Parece ficção científica, mas é sua nova avaliação").
+       - Use emojis estratégicos (💎, 🧬, 🚀) mas mantenha a classe.
+       - Hashtags: #Visbody #TecnologiaFitness #Bioimpedancia #AvaliacaoFisica + Nome do Produto.
     """
 
 def get_json_structure_instruction(qtd_str):
     return f"""
-    Responda ESTRITAMENTE com este JSON:
+    Responda ESTRITAMENTE com este JSON (sem markdown em volta):
     {{
         "contents": [
             {{
-                "angulo": "Nome Criativo do Ângulo",
-                "instagram": "Legenda completa para Insta...",
-                "linkedin": "Artigo completo para LinkedIn..."
+                "angulo": "Nome do Ângulo (Ex: Foco em Retenção, Foco em Tecnologia 3D)",
+                "instagram": "Texto...",
+                "linkedin": "Texto..."
             }}
-            ... (Gere exatamente {qtd_str} variações)
+            ... (x{qtd_str})
         ]
     }}
     """
 
-# --- REGENERAÇÃO CIRÚRGICA ---
+# --- REGENERAÇÃO COM INSTRUÇÕES DE CORREÇÃO ---
 
 def regenerate_single_platform(context_data, context_type, angle_name, target_platform):
     client = get_client()
@@ -84,24 +80,25 @@ def regenerate_single_platform(context_data, context_type, angle_name, target_pl
     instruction = ""
     if target_platform == "instagram":
         instruction = """
-        FOCO NO INSTAGRAM:
-        - Quero algo MAIS CHAMATIVO que a versão anterior.
-        - Comece com uma pergunta ou afirmação polêmica/forte.
-        - Destaque o design e a experiência.
-        - Use emojis e hashtags (#Visbody).
+        CORREÇÃO PARA INSTAGRAM:
+        - O texto anterior estava morno. Quero algo MAGNÉTICO.
+        - Use o modelo AIDA (Atenção, Interesse, Desejo, Ação).
+        - Enfatize a exclusividade e o design futurista da Visbody.
+        - Faça o leitor sentir que está ficando para trás se não tiver isso.
         """
     else:
         instruction = """
-        FOCO NO LINKEDIN:
-        - Quero algo MAIS ROBUSTO e PROFISSIONAL.
-        - Aprofunde na parte técnica ou de negócios.
-        - Escreva parágrafos bem construídos.
-        - Foque em como isso revoluciona o mercado.
+        CORREÇÃO PARA LINKEDIN (NÍVEL EXPERT):
+        - O texto anterior estava muito simples/comercial.
+        - Escreva como um CEO falando com outro CEO.
+        - Traga dados, fale sobre dor de mercado (ex: rotatividade de alunos, imprecisão de avaliações antigas).
+        - Aumente o tamanho do texto. Desenvolva o raciocínio.
+        - Termine com uma pergunta reflexiva de negócios.
         """
 
     prompt_full = f"""
-    REESCREVER CONTEÚDO PARA: {target_platform.upper()}
-    Ângulo: "{angle_name}"
+    REESCREVER: {target_platform.upper()}
+    Contexto do Ângulo: "{angle_name}"
     
     {instruction}
     
@@ -111,19 +108,13 @@ def regenerate_single_platform(context_data, context_type, angle_name, target_pl
     try:
         messages = [{"role": "system", "content": get_common_system_prompt()}]
         
-        if context_type == "text":
-            messages.append({
-                "role": "user", 
-                "content": f"Base Técnica:\n---\n{context_data[:35000]}\n---\n{prompt_full}"
-            })
-        else:
-            messages.append({
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt_full},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{context_data}", "detail": "high"}}
-                ]
-            })
+        # Monta contexto (Texto ou Imagem)
+        content_payload = f"Contexto:\n---\n{context_data[:35000]}\n---\n{prompt_full}" if context_type == "text" else [
+            {"type": "text", "text": prompt_full},
+            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{context_data}", "detail": "high"}}
+        ]
+        
+        messages.append({"role": "user", "content": content_payload})
 
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -131,15 +122,13 @@ def regenerate_single_platform(context_data, context_type, angle_name, target_pl
             response_format={"type": "json_object"}
         )
         
-        content = response.choices[0].message.content
-        if not content: return {"error": "IA retornou vazio."}
-        
-        return json.loads(clean_json_response(content))
+        res = clean_json_response(response.choices[0].message.content)
+        return json.loads(res)
 
     except Exception as e:
         return {"error": str(e)}
 
-# --- FUNÇÕES PRINCIPAIS ---
+# --- PROCESSAMENTO PRINCIPAL ---
 
 def process_image_direct(image_bytes):
     client = get_client()
@@ -149,15 +138,18 @@ def process_image_direct(image_bytes):
         base64_image = encode_image_from_bytes(image_bytes)
         
         prompt_text = """
-        Analise esta imagem da VISBODY.
-        Crie 3 estratégias de conteúdo distintas (Ex: Visual, Técnico, Vendas).
-        Lembre-se: Instagram deve ser VIBRANTE e LinkedIn deve ser ROBUSTO/TÉCNICO.
-        Identifique o nome do produto na imagem para usar nas hashtags.
+        Analise esta imagem da VISBODY com "olhar de raio-x".
+        Identifique: Design, Tecnologia visível, Interface, Ergonomia.
+        
+        Crie 3 estratégias de conteúdo PREMIUM:
+        1. Foco em Autoridade Técnica (Para convencer o dono da clínica/academia).
+        2. Foco em Experiência do Cliente (O "Efeito Uau" para o aluno).
+        3. Foco em Diferenciação de Mercado (Por que isso vence a concorrência).
+        
         """ + get_json_structure_instruction("3")
         
         user_message = [
             {"type": "text", "text": prompt_text},
-            # Ajuste: Header genérico jpeg funciona para png/jpg na maioria dos casos com GPT-4o
             {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}", "detail": "high"}}
         ]
 
@@ -165,28 +157,17 @@ def process_image_direct(image_bytes):
             model="gpt-4o",
             messages=[{"role": "system", "content": get_common_system_prompt()}, {"role": "user", "content": user_message}],
             response_format={"type": "json_object"},
-            max_tokens=3500
+            max_tokens=4000
         )
         
-        # --- SEGURANÇA ADICIONADA AQUI ---
-        content = response.choices[0].message.content
-        
-        if not content:
-            return {"error": "A IA retornou uma resposta vazia. Tente novamente."}
-            
-        try:
-            # Limpa e converte
-            clean_content = clean_json_response(content)
-            result = json.loads(clean_content)
-        except json.JSONDecodeError:
-            return {"error": "Erro ao ler JSON da IA. Tente novamente."}
-            
+        content = clean_json_response(response.choices[0].message.content)
+        result = json.loads(content)
         result["raw_context"] = base64_image
         result["context_type"] = "image"
         return result
         
     except Exception as e:
-        return {"error": f"Erro processamento imagem: {str(e)}"}
+        return {"error": f"Erro imagem: {str(e)}"}
 
 def process_pdf_to_content(pdf_path):
     client = get_client()
@@ -214,47 +195,42 @@ def process_pdf_to_content(pdf_path):
         doc.close()
 
         prompt_instruction = """
-        Analise este manual/documento técnico da VISBODY.
-        Extraia 5 Tópicos de Alto Valor.
-        Para cada tópico, crie um post de Instagram (Vibrante/Hashtags Certas) e um artigo LinkedIn (Profundo/Técnico).
+        Analise este documento técnico. Não quero resumo, quero ESTRATÉGIA.
+        Extraia 5 "Golden Nuggets" (Pontos de Ouro) deste material.
+        
+        Para o LinkedIn: Transforme cada ponto em uma lição de negócios/tecnologia robusta. Use dados, cite especificações como vantagens competitivas.
+        Para o Instagram: Transforme cada ponto em desejo visual e status.
+        
         """ + get_json_structure_instruction("5")
 
         result = {}
-        
+        content_raw = ""
+
         if not is_scanned:
             full_text = "\n".join(text_content)
-            prompt = f"Material Técnico:\n---\n{full_text[:45000]}\n---\n{prompt_instruction}"
-            
+            prompt = f"Material Visbody:\n---\n{full_text[:50000]}\n---\n{prompt_instruction}"
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[{"role": "system", "content": get_common_system_prompt()}, {"role": "user", "content": prompt}],
                 response_format={"type": "json_object"}
             )
-            content = response.choices[0].message.content
+            content_raw = response.choices[0].message.content
+            result = json.loads(clean_json_response(content_raw))
+            result["raw_context"] = full_text
+            result["context_type"] = "text"
         else:
             if not image_content: return {"error": "PDF vazio"}
             user_message = [{"type": "text", "text": prompt_instruction}]
             user_message.extend(image_content)
-            
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[{"role": "system", "content": get_common_system_prompt()}, {"role": "user", "content": user_message}],
                 response_format={"type": "json_object"},
                 max_tokens=4000
             )
-            content = response.choices[0].message.content
-
-        # --- SEGURANÇA ---
-        if not content:
-            return {"error": "A IA retornou resposta vazia."}
-            
-        result = json.loads(clean_json_response(content))
-        
-        if not is_scanned:
-            result["raw_context"] = full_text
-            result["context_type"] = "text"
-        else:
-            result["raw_context"] = None 
+            content_raw = response.choices[0].message.content
+            result = json.loads(clean_json_response(content_raw))
+            result["raw_context"] = None
             result["context_type"] = "scanned_pdf"
 
         return result
