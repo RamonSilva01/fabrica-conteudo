@@ -1,6 +1,6 @@
 """
-Módulo de Processamento - Versão 12.0 (Hardcore B2B - LinkedIn Profundo)
-Foco: Eliminar frases curtas e forçar artigos de liderança de pensamento.
+Módulo de Processamento - Versão 13.0 (Anti-Preguiça / Few-Shot Prompting)
+Foco: Forçar textos longos e densos no LinkedIn usando Exemplos Reais.
 """
 
 import os
@@ -28,41 +28,59 @@ def clean_json_response(content):
     if match: return match.group(1)
     return content.strip().replace("```json", "").replace("```", "")
 
+# --- O EXEMPLO DE OURO (A REFERÊNCIA) ---
+
+LINKEDIN_GOLDEN_EXAMPLE = """
+exemplo_post_linkedin: "
+**Título: Por que academias 'Low Cost' estão perdendo alunos para estúdios de experiência?**
+
+A era da 'esteira alugada' acabou. Dados recentes mostram que a taxa de cancelamento (Churn) é 40% menor em academias que oferecem gamificação e experiências imersivas. O aluno moderno não paga para correr; ele paga para *sentir*.
+
+**O Problema da Monotonia**
+O maior inimigo da retenção não é o preço, é o tédio. Uma esteira padrão, onde o aluno encara uma parede por 30 minutos, cria uma percepção de esforço negativo. O resultado? Ele falta, desanima e cancela.
+
+**A Virada Tecnológica: Creator 600**
+É aqui que entra a biomecânica aliada à imersão. A Creator 600 não é apenas hardware; é um ecossistema. Com simulação de cenários reais (Real-world Scene) em 4K, ela dissocia a dor do esforço. O aluno corre nos Alpes Suíços enquanto sua frequência cardíaca é monitorada por sensores de precisão clínica.
+
+**Impacto no ROI**
+Para o gestor, a conta é simples: Equipamentos de alta experiência permitem cobrar um ticket médio 20% superior e aumentam a vida útil do cliente (LTV). Não é um gasto em equipamento, é um investimento em blindagem de base de clientes.
+
+Você está vendendo treino ou experiência? 🚀
+"
+"""
+
 # --- O CÉREBRO DA OPERAÇÃO ---
 
 def get_system_prompt_by_mode(mode):
-    """
-    Define a personalidade e as REGRAS RÍGIDAS de estrutura.
-    """
-    
     product_context = ""
     if mode == "esteira":
-        product_context = "PRODUTO: Esteira Profissional (Creator 600). Foco: Biomecânica, Durabilidade, Tecnologia de Treino."
+        product_context = "PRODUTO: Esteira Profissional (Creator 600). Ignore scanners."
     elif mode == "scanner":
-        product_context = "PRODUTO: Body Scanner 3D (Visbody). Foco: Precisão Clínica, Avaliação Postural, Bioimpedância."
+        product_context = "PRODUTO: Body Scanner 3D (Visbody). Ignore esteiras."
     else:
         product_context = "PRODUTO: Equipamento de Alta Tecnologia Visbody."
 
     return f"""
-    ATUE COMO: Consultor Sênior de Negócios Fitness e Tecnologia Médica.
+    ATUE COMO: Consultor Sênior de Negócios Fitness (B2B).
     {product_context}
     
-    === DIFERENCIAÇÃO RADICAL DE CANAIS ===
+    === REGRAS DE CANAL (INEGOCIÁVEIS) ===
 
-    🔴 PARA O INSTAGRAM (B2C/Visual):
-       - Objetivo: Desejo e Curiosidade.
-       - Estrutura: Gancho forte ("Você nunca correu assim") -> Benefício Visual -> CTA.
-       - Use Emojis e Hashtags (#Visbody).
+    🔴 INSTAGRAM (B2C - Visual):
+       - Curto, impactante, visual.
+       - Use AIDA (Atenção, Interesse, Desejo, Ação).
+       - Hashtags: #Visbody + Produto.
     
-    🔵 PARA O LINKEDIN (B2B/Negócios) - LEIA COM ATENÇÃO:
-       - PROIBIDO: Frases curtas, slogans vazios ("Treine com propósito"), ou linguagem de "vendedor de loja".
-       - OBRIGATÓRIO: O texto deve parecer um MINI-ARTIGO ou UMA ANÁLISE DE MERCADO.
-       - ESTRUTURA RÍGIDA:
-         1. **A Dor do Mercado**: Comece falando de um problema do dono da academia/clínica (ex: rotatividade, equipamentos que quebram, avaliações imprecisas).
-         2. **A Virada Tecnológica**: Apresente a tecnologia da Visbody como a solução técnica para esse problema. Use termos técnicos.
-         3. **O Resultado (ROI)**: Fale de retenção de alunos, aumento de ticket médio ou economia operacional.
-       - TAMANHO: Mínimo de 3 parágrafos bem construídos.
-       - TOM: Sobrio, Analítico, "Thought Leader".
+    🔵 LINKEDIN (B2B - Profundo):
+       - PROIBIDO ESCREVER MENOS DE 150 PALAVRAS.
+       - PROIBIDO TEXTO DE "VENDEDOR".
+       - O texto DEVE seguir a estrutura do EXEMPLO ABAIXO.
+       - Use Títulos em Negrito. Separe por parágrafos.
+       - Fale de ROI (Retorno sobre Investimento), Retenção e Tecnologia.
+       
+    === EXEMPLO DE POST PERFEITO NO LINKEDIN (COPIE ESTA ESTRUTURA) ===
+    {LINKEDIN_GOLDEN_EXAMPLE}
+    ===================================================================
     """
 
 def get_json_structure_instruction(qtd_str):
@@ -71,16 +89,16 @@ def get_json_structure_instruction(qtd_str):
     {{
         "contents": [
             {{
-                "angulo": "Nome do Ângulo (Ex: Foco em ROI, Foco em Tecnologia)",
-                "instagram": "Legenda vibrante para Insta...",
-                "linkedin": "Artigo denso e estruturado para LinkedIn (Mínimo 100 palavras)..."
+                "angulo": "Nome do Ângulo",
+                "instagram": "Legenda Insta...",
+                "linkedin": "Artigo ROBUSTO para LinkedIn (Mínimo 3 parágrafos)..."
             }}
             ... (x{qtd_str})
         ]
     }}
     """
 
-# --- REGENERAÇÃO COM INSTRUÇÃO DE EXPANSÃO ---
+# --- REGENERAÇÃO FORÇADA ---
 
 def regenerate_single_platform(context_data, context_type, angle_name, target_platform, product_mode="auto"):
     client = get_client()
@@ -88,20 +106,15 @@ def regenerate_single_platform(context_data, context_type, angle_name, target_pl
 
     instruction = ""
     if target_platform == "instagram":
-        instruction = """
-        CORREÇÃO INSTAGRAM:
-        - O texto anterior estava chato. Quero algo VIBRANTE.
-        - Use Gatilhos Mentais de Exclusividade e Novidade.
-        - Curto, direto e visual.
-        """
+        instruction = "CORREÇÃO INSTAGRAM: Seja mais polêmico e visual. Use emojis."
     else:
-        instruction = """
-        CORREÇÃO LINKEDIN (CRÍTICO):
-        - O texto anterior estava MUITO CURTO e RASO. Parecia Twitter.
-        - Quero um texto DENSO, focado em NEGÓCIOS.
-        - Aprofunde: Como isso ajuda o gestor a ganhar mais dinheiro ou perder menos alunos?
-        - Cite especificações técnicas como vantagens competitivas.
-        - Escreva pelo menos 3 parágrafos robustos.
+        instruction = f"""
+        CORREÇÃO LINKEDIN (IMPORTANTE):
+        - O texto anterior estava MUITO CURTO.
+        - Quero um ARTIGO DE OPINIÃO, não uma legenda.
+        - Escreva no MÍNIMO 150 palavras.
+        - Estruture em: Título -> Contexto de Mercado -> Solução Visbody -> Conclusão Financeira.
+        - Use o tom de um Consultor de Negócios experiente.
         """
 
     prompt_full = f"""
@@ -139,17 +152,14 @@ def process_image_direct(image_bytes, product_mode="auto"):
     try:
         base64_image = encode_image_from_bytes(image_bytes)
         
-        product_instruction = ""
-        if product_mode == "esteira":
-            product_instruction = "Foco TOTAL na Esteira Creator 600. Ignore scanners."
-        elif product_mode == "scanner":
-            product_instruction = "Foco TOTAL no Body Scanner Visbody. Ignore esteiras."
-
         prompt_text = f"""
-        Analise esta imagem. {product_instruction}
-        
+        Analise esta imagem.
         Crie 3 estratégias de conteúdo.
-        IMPORTANTE: O LinkedIn deve ser um conteúdo de CONSULTORIA, não de propaganda. Ensine algo ao leitor.
+        
+        PARA O LINKEDIN:
+        Quero 3 MINI-ARTIGOS (não posts curtos).
+        Cada um deve ter Título, Problema, Solução Técnica e ROI.
+        Use o EXEMPLO fornecido no prompt do sistema como base de qualidade.
         """ + get_json_structure_instruction("3")
         
         user_message = [
@@ -199,12 +209,12 @@ def process_pdf_to_content(pdf_path, product_mode="auto"):
         doc.close()
 
         prompt_instruction = f"""
-        Analise este material técnico.
-        Extraia 5 Pontos de Negócio (Golden Nuggets).
+        Analise este material.
+        Extraia 5 Pontos de Ouro.
         
-        PARA O LINKEDIN: Transforme cada ponto em uma análise de mercado. 
-        Explique POR QUE essa tecnologia específica gera mais lucro ou eficiência para o dono do negócio.
-        NÃO escreva frases motivacionais. Escreva sobre NEGÓCIOS.
+        PARA O LINKEDIN: Transforme cada ponto em um ARTIGO DE LIDERANÇA DE PENSAMENTO.
+        Siga a estrutura: Título -> Contexto -> Solução Técnica -> ROI.
+        Mínimo de 150 palavras por post.
         """ + get_json_structure_instruction("5")
 
         result = {}
