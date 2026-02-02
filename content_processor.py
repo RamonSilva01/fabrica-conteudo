@@ -1,5 +1,6 @@
 """
-Módulo de Processamento - Versão 11.0 (Com Trava Manual de Produto)
+Módulo de Processamento - Versão 12.0 (Hardcore B2B - LinkedIn Profundo)
+Foco: Eliminar frases curtas e forçar artigos de liderança de pensamento.
 """
 
 import os
@@ -27,58 +28,42 @@ def clean_json_response(content):
     if match: return match.group(1)
     return content.strip().replace("```json", "").replace("```", "")
 
-# --- PROMPTS ADAPTÁVEIS ---
+# --- O CÉREBRO DA OPERAÇÃO ---
 
 def get_system_prompt_by_mode(mode):
     """
-    Retorna o prompt exato para o tipo de produto selecionado.
-    mode: 'auto', 'esteira', 'scanner'
+    Define a personalidade e as REGRAS RÍGIDAS de estrutura.
     """
     
-    base_prompt = """
-    ATUE COMO: Diretor de Marketing Global da VISBODY.
-    SUA MISSÃO: Criar conteúdo B2B (LinkedIn) e B2C (Instagram) de alta conversão.
-    """
-    
-    # TRAVA DE CONTEXTO
+    product_context = ""
     if mode == "esteira":
-        context_rule = """
-        === PRODUTO DEFINIDO: ESTEIRA (TREADMILL) ===
-        - Você ESTÁ vendo uma ESTEIRA (Provavelmente a Creator 600).
-        - GÊNERO OBRIGATÓRIO: FEMININO ("A Creator 600", "A esteira").
-        - FOCO: Corrida, Treino, Biomecânica, Lona, Amortecimento, Prevenção de Lesões.
-        - PROIBIDO: Falar de "escaneamento corporal" ou "análise 3D" como função principal (a menos que seja um recurso da tela da esteira).
-        """
+        product_context = "PRODUTO: Esteira Profissional (Creator 600). Foco: Biomecânica, Durabilidade, Tecnologia de Treino."
     elif mode == "scanner":
-        context_rule = """
-        === PRODUTO DEFINIDO: BODY SCANNER 3D ===
-        - Você ESTÁ vendo um SCANNER CORPORAL (Visbody R6, S30, etc).
-        - GÊNERO OBRIGATÓRIO: MASCULINO ("O Visbody", "O scanner").
-        - FOCO: Avaliação Física, Bioimpedância, Postura, Precisão Clínica.
-        - PROIBIDO: Falar de "corrida" ou "treino aeróbico".
-        """
-    else: # Auto
-        context_rule = """
-        === IDENTIFICAÇÃO AUTOMÁTICA ===
-        - Analise a imagem/texto para identificar se é ESTEIRA ou SCANNER.
-        - SE ESTEIRA -> Use Feminino ("A Creator"). Foco em Treino.
-        - SE SCANNER -> Use Masculino ("O Visbody"). Foco em Avaliação.
-        """
+        product_context = "PRODUTO: Body Scanner 3D (Visbody). Foco: Precisão Clínica, Avaliação Postural, Bioimpedância."
+    else:
+        product_context = "PRODUTO: Equipamento de Alta Tecnologia Visbody."
 
-    style_rules = """
-    === ESTILO DE ESCRITA ===
-    1. LINKEDIN (Autoridade B2B):
-       - Escreva para donos de academia/clínicas.
-       - Foco em ROI, Retenção, Tecnologia e Diferencial Competitivo.
-       - Tom: CEO para CEO.
-       
-    2. INSTAGRAM (Desejo Visual):
-       - Use o método AIDA (Atenção, Interesse, Desejo, Ação).
-       - Hashtags OBRIGATÓRIAS: #Visbody + Nome do Produto.
-       - Tom: Magnético, Futurista.
-    """
+    return f"""
+    ATUE COMO: Consultor Sênior de Negócios Fitness e Tecnologia Médica.
+    {product_context}
     
-    return base_prompt + context_rule + style_rules
+    === DIFERENCIAÇÃO RADICAL DE CANAIS ===
+
+    🔴 PARA O INSTAGRAM (B2C/Visual):
+       - Objetivo: Desejo e Curiosidade.
+       - Estrutura: Gancho forte ("Você nunca correu assim") -> Benefício Visual -> CTA.
+       - Use Emojis e Hashtags (#Visbody).
+    
+    🔵 PARA O LINKEDIN (B2B/Negócios) - LEIA COM ATENÇÃO:
+       - PROIBIDO: Frases curtas, slogans vazios ("Treine com propósito"), ou linguagem de "vendedor de loja".
+       - OBRIGATÓRIO: O texto deve parecer um MINI-ARTIGO ou UMA ANÁLISE DE MERCADO.
+       - ESTRUTURA RÍGIDA:
+         1. **A Dor do Mercado**: Comece falando de um problema do dono da academia/clínica (ex: rotatividade, equipamentos que quebram, avaliações imprecisas).
+         2. **A Virada Tecnológica**: Apresente a tecnologia da Visbody como a solução técnica para esse problema. Use termos técnicos.
+         3. **O Resultado (ROI)**: Fale de retenção de alunos, aumento de ticket médio ou economia operacional.
+       - TAMANHO: Mínimo de 3 parágrafos bem construídos.
+       - TOM: Sobrio, Analítico, "Thought Leader".
+    """
 
 def get_json_structure_instruction(qtd_str):
     return f"""
@@ -86,16 +71,16 @@ def get_json_structure_instruction(qtd_str):
     {{
         "contents": [
             {{
-                "angulo": "Nome do Ângulo",
-                "instagram": "Texto...",
-                "linkedin": "Texto..."
+                "angulo": "Nome do Ângulo (Ex: Foco em ROI, Foco em Tecnologia)",
+                "instagram": "Legenda vibrante para Insta...",
+                "linkedin": "Artigo denso e estruturado para LinkedIn (Mínimo 100 palavras)..."
             }}
             ... (x{qtd_str})
         ]
     }}
     """
 
-# --- REGENERAÇÃO ---
+# --- REGENERAÇÃO COM INSTRUÇÃO DE EXPANSÃO ---
 
 def regenerate_single_platform(context_data, context_type, angle_name, target_platform, product_mode="auto"):
     client = get_client()
@@ -103,19 +88,30 @@ def regenerate_single_platform(context_data, context_type, angle_name, target_pl
 
     instruction = ""
     if target_platform == "instagram":
-        instruction = "CORREÇÃO INSTAGRAM: Quero algo MAIS MAGNÉTICO e VISUAL. Use AIDA."
+        instruction = """
+        CORREÇÃO INSTAGRAM:
+        - O texto anterior estava chato. Quero algo VIBRANTE.
+        - Use Gatilhos Mentais de Exclusividade e Novidade.
+        - Curto, direto e visual.
+        """
     else:
-        instruction = "CORREÇÃO LINKEDIN: Quero algo MAIS TÉCNICO e DE NEGÓCIOS. Foco em ROI."
+        instruction = """
+        CORREÇÃO LINKEDIN (CRÍTICO):
+        - O texto anterior estava MUITO CURTO e RASO. Parecia Twitter.
+        - Quero um texto DENSO, focado em NEGÓCIOS.
+        - Aprofunde: Como isso ajuda o gestor a ganhar mais dinheiro ou perder menos alunos?
+        - Cite especificações técnicas como vantagens competitivas.
+        - Escreva pelo menos 3 parágrafos robustos.
+        """
 
     prompt_full = f"""
     REESCREVER: {target_platform.upper()}
-    Contexto: "{angle_name}"
+    Contexto do Ângulo: "{angle_name}"
     {instruction}
     Retorne APENAS JSON: {{ "new_text": "..." }}
     """
 
     try:
-        # Usa o prompt correto baseado no modo escolhido
         messages = [{"role": "system", "content": get_system_prompt_by_mode(product_mode)}]
         
         content_payload = f"Contexto:\n---\n{context_data[:35000]}\n---\n{prompt_full}" if context_type == "text" else [
@@ -143,17 +139,17 @@ def process_image_direct(image_bytes, product_mode="auto"):
     try:
         base64_image = encode_image_from_bytes(image_bytes)
         
-        # Reforço no prompt do usuário também
         product_instruction = ""
         if product_mode == "esteira":
-            product_instruction = "ISSO É UMA ESTEIRA. Ignore qualquer semelhança com scanner. Venda os benefícios da CORRIDA."
+            product_instruction = "Foco TOTAL na Esteira Creator 600. Ignore scanners."
         elif product_mode == "scanner":
-            product_instruction = "ISSO É UM SCANNER. Ignore qualquer semelhança com esteira. Venda os benefícios da AVALIAÇÃO."
+            product_instruction = "Foco TOTAL no Body Scanner Visbody. Ignore esteiras."
 
         prompt_text = f"""
         Analise esta imagem. {product_instruction}
-        Crie 3 estratégias de conteúdo PREMIUM (B2B e B2C).
-        Identifique o modelo exato para as hashtags.
+        
+        Crie 3 estratégias de conteúdo.
+        IMPORTANTE: O LinkedIn deve ser um conteúdo de CONSULTORIA, não de propaganda. Ensine algo ao leitor.
         """ + get_json_structure_instruction("3")
         
         user_message = [
@@ -171,8 +167,7 @@ def process_image_direct(image_bytes, product_mode="auto"):
         result = json.loads(clean_json_response(response.choices[0].message.content))
         result["raw_context"] = base64_image
         result["context_type"] = "image"
-        # Importante: Salvar o modo usado para a regeneração saber depois
-        result["product_mode"] = product_mode 
+        result["product_mode"] = product_mode
         return result
         
     except Exception as e:
@@ -204,9 +199,12 @@ def process_pdf_to_content(pdf_path, product_mode="auto"):
         doc.close()
 
         prompt_instruction = f"""
-        Analise este material.
-        Extraia 5 Pontos de Ouro (Golden Nuggets) de negócio e tecnologia.
-        Modo de Produto: {product_mode.upper()}.
+        Analise este material técnico.
+        Extraia 5 Pontos de Negócio (Golden Nuggets).
+        
+        PARA O LINKEDIN: Transforme cada ponto em uma análise de mercado. 
+        Explique POR QUE essa tecnologia específica gera mais lucro ou eficiência para o dono do negócio.
+        NÃO escreva frases motivacionais. Escreva sobre NEGÓCIOS.
         """ + get_json_structure_instruction("5")
 
         result = {}
